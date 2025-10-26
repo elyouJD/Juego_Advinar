@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b0082">
+<title>Juego de Adivinar Número</title>
+<style>
+body { background-color: rgb(101,116,163); font-family: Arial, Helvetica, sans-serif; text-align: center; }
+div { background: linear-gradient(to right,rgb(53,7,77),rgb(83,8,68),rgb(77,0,128)); width: 50%; min-height: 80vh; margin:auto; border-radius:10px; padding:20px; color:white; }
+ul { padding:0; }
+ul li { list-style:none; padding:10px; margin:5px; border-radius:10px; background: linear-gradient(to right,rgb(45,5,53),rgb(155,46,6),green); font-size:18px; font-weight:bold; color:aliceblue; cursor:pointer; transition: transform 0.2s ease; }
+ul li:hover { transform: scale(1.05); }
+.lista_2 { display:none; background-color: rgba(255,255,255,0.1); border-radius:10px; padding:10px; margin-top:10px; }
+#shareBtn { margin-top:10px; background:orange; color:black; font-weight:bold; }
+#leaderboard { margin-top:10px; text-align:left; }
+</style>
+</head>
+<body>
+<div>
+<h1>🎯 Juego de Adivinar Número</h1>
+<ul>
+<li id="btnReglas">Reglas rápidas</li>
+<ul class="lista_2" id="reglas">
+<li>Se genera un número aleatorio entre 1 y 100.</li>
+<li>Inserta tu estimación en el cuadro.</li>
+<li>Si no es número o está fuera de rango, te pedirá de nuevo.</li>
+<li>Si aciertas: se muestra el número de intentos.</li>
+<li>Puedes pedir pistas si te bloqueas.</li>
+</ul>
+<li id="btnComenzar">Comenzar</li>
+<li id="btnSalir">Cancelar</li>
+</ul>
+
+<button id="shareBtn">شارك اللعبة مع أصدقائك!</button>
+
+<div id="leaderboard">
+<h3>🏆 Top Jugadores</h3>
+<ol id="topPlayers"></ol>
+</div>
+</div>
+
+<audio id="correctSound" src="sounds/correct.mp3" preload="auto"></audio>
+<audio id="wrongSound" src="sounds/wrong.mp3" preload="auto"></audio>
+
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js');}
+
+document.getElementById("btnReglas").addEventListener("click",()=>{const r=document.getElementById("reglas"); r.style.display=r.style.display==="block"?"none":"block";});
+
+let leaderboard = JSON.parse(localStorage.getItem("leaderboard"))||[];
+function updateLeaderboard(){const top=document.getElementById("topPlayers"); top.innerHTML=""; leaderboard.slice(0,5).forEach(p=>{const li=document.createElement("li"); li.textContent=`${p.name} - Nivel ${p.level} - ${p.intentos} intentos`; top.appendChild(li);}); localStorage.setItem("leaderboard", JSON.stringify(leaderboard));}
+
+document.getElementById("btnComenzar").addEventListener("click",()=>{let level=1; startLevel(level);});
+
+function startLevel(level){
+let maxNum=level*50; let numAleatorio=Math.floor(Math.random()*maxNum)+1; let intentos=0;
+while(true){
+let entrada=prompt(`Nivel ${level}: Adivina un número del 1 al ${maxNum} (escribe "hint" para pista)`);
+if(entrada===null){ alert("Juego cancelado. ¡Hasta la próxima!"); break; }
+if(entrada.toLowerCase()==="hint"){ alert(`Hint: el número está entre ${Math.max(1,numAleatorio-10)} y ${Math.min(maxNum,numAleatorio+10)}`); continue;}
+let numero=parseInt(entrada);
+if(isNaN(numero)||numero<1||numero>maxNum){ alert("Por favor, introduce un número válido."); continue; }
+intentos++;
+const correctSound=document.getElementById("correctSound");
+const wrongSound=document.getElementById("wrongSound");
+
+if(numero===numAleatorio){ correctSound.play(); alert(`🎉 ¡Nivel completado! Número de intentos: ${intentos}`); let name=prompt("Escribe tu nombre para el leaderboard:"); if(name) leaderboard.push({name,intentos,level}); updateLeaderboard(); if(confirm("¿Quieres pasar al siguiente nivel?")) startLevel(level+1); else { alert("Gracias por jugar 😊"); break;} }else{ wrongSound.play(); alert(numero<numAleatorio?"El número secreto es MAYOR.":"El número secreto es MENOR."); }
+}
+}
+
+document.getElementById("shareBtn").addEventListener("click",()=>{const url=window.location.href; const text=`تعالوا جربوا اللعبة المجانية 🎯: ${url}`; if(navigator.share){ navigator.share({title:"Juego de Adivinar Número", text, url}); } else{ prompt("انسخ الرابط وشاركه مع أصدقائك:", url); }});
+
+document.getElementById("btnSalir").addEventListener("click",()=>{ alert("Has salido del juego. 👋"); window.close(); });
+
+updateLeaderboard();
+</script>
+</body>
+</html>
